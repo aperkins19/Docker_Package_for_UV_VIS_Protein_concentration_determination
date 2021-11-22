@@ -207,7 +207,6 @@ def process_dataset(collection, filename, crunched, wavelength_list, elution_lis
     plot_df = plot_df.set_index(plot_df['Proteins'])
     plot_df = plot_df.drop('Proteins', axis=1)
 
-    print(plot_df)
 
     sns.heatmap(plot_df, annot=False, fmt="g", cmap='viridis', cbar_kws={'label': 'mg/ml'})
 
@@ -218,6 +217,82 @@ def process_dataset(collection, filename, crunched, wavelength_list, elution_lis
 
     plt.savefig("elutions_mg_per_ml.png")
 
+    ###################################################################################################################
+
+    #clears the plot before starting the bar chart
+    plt.clf()
+
+    # in order to do the grouped barplot, I need to reformat the data to make the protein names and elution fraction numbers metadata in columns
+    plot_df_transposed = plot_df.transpose()
+    # grab the colnames and index names
+    protein_columns = plot_df_transposed.columns
+    elution_indexes = plot_df_transposed.index
+
+    # initalise empty dataframe
+    bar_plot_df = pd.DataFrame(columns=["Protein","Mg/Ml","Elution Fraction"])
+
+    #iterate through the columns of the data frame
+    for name, values in plot_df_transposed.iteritems():
+        v = values
+        # move the elution fractions from the index to a column
+        v = v.reset_index()
+        # rename the index column name
+        v.columns = v.columns.str.replace('index', 'Elution Fraction')
+        # assign protein
+        v['Protein'] = str(name)
+        v.columns = v.columns.str.replace(str(name), 'Mg/Ml')
+        #append it on
+        bar_plot_df = bar_plot_df.append(v, ignore_index = True)
+
+    #print(bar_plot_df)
+
+    sns.set_style('darkgrid')
+    sns.set_palette('Dark2_r')
+
+    sns.barplot(data=bar_plot_df, x="Elution Fraction", y="Mg/Ml", hue="Protein")
+    plt.title('Elution Concentrations')
+    plt.savefig("grouped_bar.png")
+
+##################################################################################################################################
+
+    ################################# subplots
+    scaling_factor = 0.9
+    # get the max elution value for the ylimit
+    max_conc = bar_plot_df['Mg/Ml'].max()
+    # add 10%
+    max_conc = max_conc + (max_conc/10)
+
+    # 2 rows, 4 columns, first plot
+    fig, axes = plt.subplots(2, 4,figsize=(14*scaling_factor,7*scaling_factor))
+
+    # grab the unique values from the protein columns
+    protein_uniques = bar_plot_df.Protein.unique()
+
+    # uses a row counter
+    row_counter = 0
+    for column_counter, p in enumerate(protein_uniques):
+        # if index is greater than 4 then reset it to 0 and add one to the row counter
+        if column_counter >= 4:
+            column_counter = column_counter - 4
+            row_counter = 1
+
+        # from the big data frame, grab the rows where the Protein column equals the entry in protein_uniques
+        individual_protein_slice = bar_plot_df[bar_plot_df['Protein']==p]
+
+        # make a bar plot using that slice. use the axis counters to assign it to the correct subplot. set the title to the name
+        sns.barplot(data=individual_protein_slice, x="Elution Fraction", y="Mg/Ml", ax=axes[row_counter,column_counter]).set(title=p)
+        # set the ylim of that subplot using the max_conc caluclated earlier
+        axes[row_counter,column_counter].set_ylim(0, max_conc)
+
+
+    #sns.barplot(data=bar_plot_df, x="Elution Fraction", y="Mg/Ml", ax=axes[0,0])
+    plt.title('Elution Concentrations')
+    # make the space between the subplot rows better
+    plt.subplots_adjust(hspace = 0.3)
+    plt.tight_layout()
+    plt.savefig("subplots_bar.png")
+
+######################################################################################################################
     plot_df.to_csv('mg_per_ml.csv')
 
 
