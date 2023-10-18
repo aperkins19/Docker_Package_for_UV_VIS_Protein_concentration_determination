@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+
+  uv_vis:
+    build: .
+    image: uv_vis
+    container_name: uv_vis
+
+
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+    volumes:
+      - ./:/app
+  
